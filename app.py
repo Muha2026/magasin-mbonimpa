@@ -427,16 +427,41 @@ elif menu == "📊 Tableau de Bord":
     st.header("📊 Performance & Statistiques")
     
     # KPIs
-    q_stats = "SELECT SUM(v.prix_total) as CA, SUM(v.prix_total - (p.prix_achat * v.quantite_vendue)) as Benef FROM ventes v JOIN produits p ON v.produit_id = p.id"
-    res = pd.read_sql_query(q_stats, conn)
-    dep_total = pd.read_sql_query("SELECT SUM(montant) FROM depenses", conn).iloc[0,0] or 0
+    # --- SECTION : TABLEAU DE BORD (PATRON SEULEMENT) ---
+elif menu == "📊 Tableau de Bord":
+    st.header("📊 Performance & Statistiques")
     
-    c1, c2, c3 = st.columns(3)
-    ca = res['CA'].sum() or 0
-    benef_b = res['Benef'].sum() or 0
-    c1.metric("Chiffre d'Affaires", f"{ca:,.0f} FG")
-    c2.metric("Bénéfice Brut", f"{benef_b:,.0f} FG")
-    c3.metric("Bénéfice Net (Moins Dépenses)", f"{(benef_b - dep_total):,.0f} FG")
+    # CALCULS AMÉLIORÉS (CASH + DETTES)
+    try:
+        # 1. Chiffre d'Affaires Total (Toutes les ventes confondues)
+        ca_total = pd.read_sql_query("SELECT SUM(prix_total) FROM ventes", conn).iloc[0,0] or 0
+        
+        # 2. Bénéfice Brut (Marge sur TOUTES les ventes, même les dettes)
+        # Formule : (Prix de vente total) - (Prix d'achat * Quantité vendue)
+        q_benef = """
+            SELECT SUM(v.prix_total - (p.prix_achat * v.quantite_vendue)) as marge 
+            FROM ventes v 
+            JOIN produits p ON v.produit_id = p.id
+        """
+        benef_brut = pd.read_sql_query(q_benef, conn).iloc[0,0] or 0
+        
+        # 3. Détail Dettes (Ce qui est encore dehors)
+        dettes_dehors = pd.read_sql_query("SELECT SUM(prix_total) FROM ventes WHERE statut_dette = 'Non Payé'", conn).iloc[0,0] or 0
+        
+        # 4. Dépenses Totales
+        dep_total = pd.read_sql_query("SELECT SUM(montant) FROM depenses", conn).iloc[0,0] or 0
+        
+        # AFFICHAGE DES MÉTRIQUES
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Chiffre d'Affaires", f"{ca_total:,.0f} FG")
+        c2.metric("Bénéfice Brut Total", f"{benef_brut:,.0f} FG", help="Inclut le bénéfice des ventes cash et des dettes")
+        c3.metric("Bénéfice Net", f"{(benef_brut - dep_total):,.0f} FG", help="Bénéfice Brut - Dépenses")
+
+        # NOUVELLE LIGNE POUR LES CRÉDITS
+        st.info(f"💡 **Note sur la trésorerie :** Sur le bénéfice brut, **{dettes_dehors:,.0f} FG** sont encore en attente de paiement (Dettes clients).")
+
+    except Exception as e:
+        st.error(f"Erreur lors du calcul des statistiques : {e}")
     
     # DIAGRAMME DES VENTES
     st.subheader("📈 Évolution des Ventes")
@@ -572,6 +597,7 @@ elif menu == "☎️ Aide & Support":
         if st.form_submit_button("Envoyer la demande"):
             # Ici, comme c'est local, on simule l'envoi
             st.success("Votre demande a été enregistrée. Pacy MHA vous contactera sous peu.")
+
 
 
 
