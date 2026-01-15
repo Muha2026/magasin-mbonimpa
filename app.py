@@ -421,13 +421,7 @@ elif menu == "💸 Finances & Dépenses":
             if st.form_submit_button("Enregistrer Dépense"):
                 c = conn.cursor(); c.execute("INSERT INTO depenses (motif, montant) VALUES (?,?)", (mo, mt)); conn.commit(); st.success("Dépense notée !"); st.rerun()
         st.table(pd.read_sql_query("SELECT date, motif, montant FROM depenses ORDER BY id DESC", conn))
-
-# --- SECTION : TABLEAU DE BORD (PATRON SEULEMENT) ---
-elif menu == "📊 Tableau de Bord":
-    st.header("📊 Performance & Statistiques")
-    
-    # KPIs
-    # --- SECTION : TABLEAU DE BORD (PATRON SEULEMENT) ---
+        
 elif menu == "📊 Tableau de Bord":
     st.header("📊 Performance & Statistiques")
     
@@ -597,6 +591,7 @@ elif menu == "☎️ Aide & Support":
         if st.form_submit_button("Envoyer la demande"):
             # Ici, comme c'est local, on simule l'envoi
             st.success("Votre demande a été enregistrée. Pacy MHA vous contactera sous peu.")
+
 
 
 
