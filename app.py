@@ -171,33 +171,24 @@ if "auth" not in st.session_state:
 # --- 2. CONNEXION (Version Cloud avec Supabase) ---
 if not st.session_state.auth:
     st.title("🔐 Bienvenue")
-    with st.form("login"):
-        u = st.text_input("Identifiant").lower().strip()
-        p = st.text_input("Mot de passe", type="password").strip()
-        
-        if st.form_submit_button("Se connecter"):
-            try:
-                # REQUÊTE TEST
-                res = supabase.table("utilisateurs").select("*").eq("identifiant", u).eq("mot_de_passe", p).execute()
-                
-                # DEBUG : On affiche ce que Supabase répond réellement
-                if not res.data:
-                    st.warning(f"Le serveur ne trouve rien pour l'utilisateur : {u}")
-                else:
-                    st.write("Utilisateur trouvé :", res.data) # Pour voir si le mot de passe correspond
-                
-                if res.data and len(res.data) > 0:
-                    user_data = res.data[0]
-                    st.session_state.auth = True
-                    st.session_state.role = user_data['role']
-                    st.session_state.user = u
-                    st.rerun()
-                else:
-                    st.error("Identifiants incorrects sur le serveur.")
-            except Exception as e:
-                st.error(f"Erreur technique de connexion : {e}")
-    st.stop()
+    # ... (vos champs de saisie u et p)
+    if st.form_submit_button("Se connecter"):
+        try:
+            res = supabase.table("utilisateurs").select("*").eq("identifiant", u).eq("mot_de_passe", p).execute()
+            
+            if res.data and len(res.data) > 0:
+                user_data = res.data[0]
+                st.session_state.auth = True
+                st.session_state.role = user_data['role']
+                st.session_state.user = u
 
+                # 🔥 AJOUTEZ CECI ICI : Enregistre la présence dans SQLite
+                with sqlite3.connect('boutique.db') as conn_p:
+                    cp = conn_p.cursor()
+                    cp.execute("INSERT INTO presence (utilisateur, date_connexion) VALUES (?, CURRENT_TIMESTAMP)", (u,))
+                    conn_p.commit()
+
+                st.rerun()
 # --- SIDEBAR & MENU ---
 st.sidebar.title(f"👤 {st.session_state.user}")
 st.sidebar.info(f"Rôle : {st.session_state.role}")
@@ -591,6 +582,7 @@ elif menu == "☎️ Aide & Support":
         if st.form_submit_button("Envoyer la demande"):
             # Ici, comme c'est local, on simule l'envoi
             st.success("Votre demande a été enregistrée. Pacy MHA vous contactera sous peu.")
+
 
 
 
